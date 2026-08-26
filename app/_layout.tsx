@@ -1,9 +1,12 @@
- import "global.css"
+
+//DO NOT TOUCH THIS FILE
+import "global.css"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import {AuthContextProvider, useAuth} from 'context/authContext'
 import {Slot, useSegments, useRouter} from "expo-router";
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ReminderProvider } from '../components/Reminder';
 
 const MainLayout =()=>{
   const{isAuthenticated} = useAuth();
@@ -15,13 +18,10 @@ const MainLayout =()=>{
       if(typeof isAuthenticated=='undefined') return;
       const inApp = segments[0]=='(app)'
       if(isAuthenticated && !inApp){
-          // redirect to saved default screen, else to choice
           (async () => {
-            const saved = await AsyncStorage.getItem('defaultScreen');
-            router.replace(saved || 'choice');
+            router.replace('ToDo')
           })();
       }else if(isAuthenticated==false){
-          //redirect to sign in
           router.replace('SignIn')
       }
   }, [isAuthenticated])
@@ -31,8 +31,11 @@ const MainLayout =()=>{
 export default function RootLayout() {
   return (
     <AuthContextProvider>
-        <MainLayout/>
+      <ReminderProvider>
+        <MainLayout />
+      </ReminderProvider>
     </AuthContextProvider>
    
   );
 };
+

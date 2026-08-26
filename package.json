@@ -11,6 +11,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
+    "@futurejj/react-native-checkbox": "^1.0.8",
     "@primer/octicons-react": "^19.33.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-vector-icons/octicons": "^21.1.2",

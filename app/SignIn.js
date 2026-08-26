@@ -24,13 +24,15 @@ export default function SignIn() {
         Alert.alert('Sign In', response.msg);
       }
   }
+  //DO NOT TOUCH ANYTHING ABOVE
   return (
     <View className="flex-1" style={{paddingHorizontal:wp(5)}}>
       <View className="gap-6">
+       {/* the text Sign in above the inputs */}
       <Text className="text-center" style={[{fontSize:hp(4)},{paddingTop:hp(30)}]}>Sign In</Text>
       <View className="flex-row gap-4 p-4 items-center bg-neutral-100 rounded-xl">
         
-         {/* username and password inputs */}
+         {/* username input */}
         <Octicons name="mail" size={hp(2.7)} color="gray"/>
          <TextInput 
          onChangeText={value=> usernameRef.current=value}
@@ -39,6 +41,8 @@ export default function SignIn() {
           className="flex-1  text-neutral-700"
           />
       </View>
+
+      {/* password input */}
       <View className="gap-3">
       <View className="flex-row gap-4 p-4 items-center bg-neutral-100 rounded-xl">
         <Octicons name="lock" size={hp(2.7)} color="gray"/>
@@ -50,10 +54,12 @@ export default function SignIn() {
           className="flex-1  text-neutral-700"
           />
           </View>
-          {/* forgot password */}
+
+          {/* forgot password (does not work yet btw)*/}
         <Text style={{fontSize: hp(1.8)}} class> Forgot Password?</Text>
       </View>
         
+  
   {/* Sign in button */}
         <View>
           {

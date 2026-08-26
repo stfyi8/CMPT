@@ -1,3 +1,4 @@
+//DO NOT TOUCH THIS FILE
 import { onAuthStateChanged } from "firebase/auth";
 import { createContext, useState, useEffect, useContext } from "react";
 import {createUserWithEmailAndPassword,signInWithEmailAndPassword, signOut }from 'firebase/auth'
