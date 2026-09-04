@@ -2,25 +2,65 @@ import { Link } from 'expo-router';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
  import "global.css"
 import { Image, Pressable, StyleSheet, Text, View, Platform } from "react-native";
-import { useAuth } from '../../context/authContext';
-import { useReminder } from '../../components/Reminder';
+import { useReminder, type ReminderItem } from '../../components/Reminder';
 import { Ionicons } from '@expo/vector-icons';
-import { useState} from 'react';
-import { Checkbox } from '@futurejj/react-native-checkbox';
+import { useState, useEffect} from 'react';
+import { getRoomId } from '../../common';
+import { db } from 'firebaseConfig';
+import { doc, setDoc, collection, query, orderBy, onSnapshot} from 'firebase/firestore';
+import { useAuth } from 'context/authContext';
+import ReminderList from '../../components/ReminderList';
+
+
+
+export class PointStruct {
+  // Readonly properties enforce immutability
+  readonly checkbox: number;
+
+  // Custom Initializer
+  constructor(checkbox: number) {
+    this.checkbox = checkbox;
+    Object.freeze(this); // Guarantees the object cannot be mutated directly
+  }
+}
 
 export default function list() {
+  const {user} = useAuth();
   const {logout} = useAuth()
    const { tasks, setTasks } = useReminder();
   const { title, setTitle } = useReminder();
-  const [checked, setChecked] = useState(false);
-
-  const toggleCheckbox = () => {
-    setChecked(!checked);
-  };
+  // const {checked, setChecked} = useReminder();
+  const [reminders, setReminders] = useState<ReminderItem[]>([]);
 
   const handleLogout = async ()=> {
     await logout();
   }
+
+   useEffect(() => {
+        if (!user?.uid) return;
+        createRoomIfNotExists();
+
+        let roomId = getRoomId(user?.uid || user?.userId);
+        const docRef = doc(db, "rooms", roomId);
+        const taskRef = collection(docRef, "tasks");
+        const q = query(taskRef);
+
+        let unsub = onSnapshot(q, (snapshot) => {
+          //console.log("snapshot docs:", snapshot.docs.length);
+  const allTasks = snapshot.docs.map(doc => doc.data());
+  //console.log("allTasks:", allTasks);
+  setReminders(allTasks as ReminderItem[]);
+});
+        
+
+        return unsub;
+      }, [user?.uid]);
+    
+      const createRoomIfNotExists = async () => {
+        const roomId = getRoomId(user?.uid || user?.userId);
+        await setDoc(doc(db, "rooms", roomId), {});
+      };
+
   // DO NOT TOUCH ANYTHING ABOVE 
   return (
 
@@ -33,18 +73,7 @@ export default function list() {
       </View>
 
         {/* The reminder component when you create the reminder*/}
-        <View className="flex-1 gap-1 p-2 items-center bg-[#a3d9f7] rounded-[20] text-end">
-        <Text className="text-lg font-bold">{title}</Text>
-       {tasks.map((task, index) => (
-        <View key={index}>
-        <Checkbox
-        status={checked ? 'checked' : 'unchecked'}
-        onPress={toggleCheckbox}
-        />
-       <Text>{task}</Text>
-       </View>
-      ))}
-      </View>
+        <ReminderList reminders={reminders}/>
       
       {/* logout button */}
       <Pressable onPress={handleLogout}>

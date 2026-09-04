@@ -12,11 +12,11 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
-    "@futurejj/react-native-checkbox": "^1.0.8",
     "@primer/octicons-react": "^19.33.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-vector-icons/octicons": "^21.1.2",
     "expo": "^56.0.19",
+    "expo-checkbox": "~56.0.1",
     "expo-constants": "~56.0.23",
     "expo-linking": "~56.0.16",
     "expo-router": "~56.2.18",
