@@ -11,7 +11,7 @@ import "global.css"
 
 // you can edit all components with className="" e.g. View, Text, pressable...
 
-export default function ToDo() {
+export default function EditView() {
   const { tasks, setTasks } = useReminder();
   const { saveData } = useReminder();
   const { title, setTitle } = useReminder();

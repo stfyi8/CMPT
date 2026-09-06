@@ -63,16 +63,6 @@ export const ReminderProvider = ({ children }: PropsWithChildren) => {
         }
     };
 
-    const deleteData = async () => {
-            try {
-                const roomId = getRoomId(user?.uid ?? user?.userId);
-                const docRef = doc(db, "rooms", roomId);
-                const taskRef = collection(docRef, "tasks");
-
-            } catch (e) {
-            }
-    }
-
    // console.log("tasks in context", tasks, title, checked);
 
     return (

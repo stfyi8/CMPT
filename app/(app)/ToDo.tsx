@@ -1,16 +1,18 @@
 import { Link } from 'expo-router';
-import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
- import "global.css"
-import { Image, Pressable, StyleSheet, Text, View, Platform } from "react-native";
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import "global.css"
+import { Image, Pressable, StyleSheet, Text, View, Platform, Switch} from "react-native";
 import { useReminder, type ReminderItem } from '../../components/Reminder';
-import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect} from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getRoomId } from '../../common';
 import { db } from 'firebaseConfig';
-import { doc, setDoc, collection, query, orderBy, onSnapshot} from 'firebase/firestore';
+import { doc, setDoc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { useAuth } from 'context/authContext';
 import ReminderList from '../../components/ReminderList';
-
+import { Ionicons} from '@expo/vector-icons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import {useAutoDelete} from '../../components/AutoDelete';
 
 
 export class PointStruct {
@@ -25,82 +27,121 @@ export class PointStruct {
 }
 
 export default function list() {
-  const {user} = useAuth();
-  const {logout} = useAuth()
-   const { tasks, setTasks } = useReminder();
-  const { title, setTitle } = useReminder();
+  const { isEnabled, setIsEnabled, } = useAutoDelete();
+  const { toggleSwitch } = useAutoDelete();
+
+
+  const snapPoints = useMemo(() => ['25%'], []);
+
+  const bottomSheetRef = useRef<BottomSheet>(null);
+
+  const { user } = useAuth();
+  const { logout } = useAuth()
   // const {checked, setChecked} = useReminder();
   const [reminders, setReminders] = useState<ReminderItem[]>([]);
 
-  const handleLogout = async ()=> {
+  const handleLogout = async () => {
     await logout();
   }
 
-   useEffect(() => {
-        if (!user?.uid) return;
-        createRoomIfNotExists();
+  useEffect(() => {
+    if (!user?.uid) return;
+    createRoomIfNotExists();
 
-        let roomId = getRoomId(user?.uid || user?.userId);
-        const docRef = doc(db, "rooms", roomId);
-        const taskRef = collection(docRef, "tasks");
-        const q = query(taskRef);
+    let roomId = getRoomId(user?.uid || user?.userId);
+    const docRef = doc(db, "rooms", roomId);
+    const taskRef = collection(docRef, "tasks");
+    const q = query(taskRef, orderBy("createdAt", "desc"));
 
-        let unsub = onSnapshot(q, (snapshot) => {
-          //console.log("snapshot docs:", snapshot.docs.length);
-  const allTasks = snapshot.docs.map(doc => doc.data());
-  //console.log("allTasks:", allTasks);
-  setReminders(allTasks as ReminderItem[]);
-});
-        
+    let unsub = onSnapshot(q, (snapshot) => {
+      //console.log("snapshot docs:", snapshot.docs.length);
+      const allTasks = snapshot.docs.map(doc => doc.data());
+      //console.log("allTasks:", allTasks);
+      setReminders(allTasks as ReminderItem[]);
+    });
 
-        return unsub;
-      }, [user?.uid]);
-    
-      const createRoomIfNotExists = async () => {
-        const roomId = getRoomId(user?.uid || user?.userId);
-        await setDoc(doc(db, "rooms", roomId), {});
-      };
+
+    return unsub;
+  }, [user?.uid]);
+
+  const createRoomIfNotExists = async () => {
+    const roomId = getRoomId(user?.uid || user?.userId);
+    await setDoc(doc(db, "rooms", roomId), {});
+  };
 
   // DO NOT TOUCH ANYTHING ABOVE 
   return (
-
+      <GestureHandlerRootView style={{ flex: 1 }}>
     <View className='flex-1'>
-    <View className='gap-10'>
-     
-       {/* The To-Do-List header on top*/}
-    <View className='bg-[#fe9438] pb-7 rounded-[30]'style={{paddingTop: Platform.OS === 'android' ? 60 : 70}}>
-        <Text className='text-6xl text-center' style={[styles.shadow,{fontSize:hp(5.5)}]}>To-Do-List</Text>
-      </View>
+      <View className='flex-1'>
+
+        {/* The To-Do-List header on top*/}
+        <View className='bg-[#fe9438] pb-7 rounded-[30]' style={{ paddingTop: Platform.OS === 'android' ? 60 : 70 }}>
+          <Text className='text-6xl text-center' style={[styles.shadow, { fontSize: hp(5.5) }]}>To-Do-List</Text>
+        </View>
 
         {/* The reminder component when you create the reminder*/}
-        <ReminderList reminders={reminders}/>
-      
-      {/* logout button */}
-      <Pressable onPress={handleLogout}>
-        <Text>logout</Text>
-      </Pressable>
-   </View>
+        <View style={{ flex: 1, minHeight: 0 }}>
+          <ReminderList reminders={reminders} />
+        </View>
+      </View>
 
-       {/* the plus button at the bottom right */}
-      <View className=" flex-1 items-end justify-end p-5 pr-2 bg-top bg-red-20">
-      <Link href='/AddReminder' asChild>
-     <Pressable>
-      <Image 
-            source={require('assets/myAssets/addButton.png')}
-          />
+      {/* the plus and settingsbutton at the bottom */}
+      <View className="flex-row items-end pl-4 pr-2 justify-between" style={{ paddingBottom: Platform.OS === 'android' ? 20 : 40 }}>
+        
+        <Pressable onPress={() => { bottomSheetRef.current?.expand() }}>
+        <Image
+              source={require('assets/myAssets/settings.png')}
+            />
       </Pressable>
-      </Link>
+
+        <Link href='/AddReminder' asChild>
+          <Pressable>
+            <Image
+              source={require('assets/myAssets/addButton.png')}
+            />
+          </Pressable>
+        </Link>
+      </View>
+      
+      <BottomSheet
+        ref={bottomSheetRef}
+        snapPoints={snapPoints}
+        enablePanDownToClose={true}
+        >
+          <BottomSheetView >
+            <Text className='text-center' style={{ fontSize: hp(2) }}>Settings</Text>
+
+            {/* Toggle auto delete when all is striked through */}
+            <View className="flex-row items-center justify-between p-6" >
+          <Text style={{ fontSize: hp(2) }}>Auto Delete</Text>
+          <Switch
+          trackColor={{false: '#767577', true: '#fe9438'}}
+          ios_backgroundColor="#3e3e3e"
+          onValueChange={toggleSwitch}
+          value={isEnabled}
+          className=''
+        />
+        </View>
+
+          {/* logout button */}
+        <Pressable onPress={handleLogout} className='p-4 bg-[#fe9438] rounded-lg m-2'>
+          <Text className='text-center text-white font-bold' style={[{fontSize: hp(2)}]}>logout</Text>
+        </Pressable>
+
+          </BottomSheetView>
+      </BottomSheet>
     </View>
-   </View>
+     </GestureHandlerRootView>
   );
 };
 
-    const styles = StyleSheet.create({
-      shadow:{
+const styles = StyleSheet.create({
+  shadow: {
     textShadowRadius: 4,
     textShadowOffset: { width: 0, height: 4 },
     textAlign: "center",
     color: "#fff",
     fontFamily: "LINE Seed JP",
   },
-    })
+})

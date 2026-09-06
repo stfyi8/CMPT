@@ -7,6 +7,7 @@ import {Slot, useSegments, useRouter} from "expo-router";
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ReminderProvider } from '../components/Reminder';
+import { AutoDeleteProvider } from "../components/AutoDelete";
 
 const MainLayout =()=>{
   const{isAuthenticated} = useAuth();
@@ -32,7 +33,9 @@ export default function RootLayout() {
   return (
     <AuthContextProvider>
       <ReminderProvider>
+        <AutoDeleteProvider>
         <MainLayout />
+        </AutoDeleteProvider>
       </ReminderProvider>
     </AuthContextProvider>
    
