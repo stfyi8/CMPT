@@ -10,7 +10,6 @@ type AutoDeleteContextValue = {
     isEnabled: boolean;
     setIsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
     toggleSwitch: () => void;
-
 };
 
 export const AutoDelete = createContext<AutoDeleteContextValue | undefined>(undefined);

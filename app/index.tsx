@@ -1,9 +1,7 @@
 
 //DO NOT TOUCH THIS FILE
-import { StatusBar } from 'expo-status-bar';
  import "global.css";
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Image, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 
 export default function StartPage() {
   return (

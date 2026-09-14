@@ -18,7 +18,8 @@
         }
       ],
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@react-native-community/datetimepicker"
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -27,13 +28,15 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stfyi.CMPT"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.stfyi.CMPT" //can change
     }
   }
 }

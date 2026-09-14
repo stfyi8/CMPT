@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Platform } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Platform, TouchableOpacity } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { Octicons } from '@react-native-vector-icons/octicons';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import { useReminder } from '../../components/Reminder';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import "global.css"
-
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 
 // you can edit all components with className="" e.g. View, Text, pressable...
@@ -15,6 +15,16 @@ export default function ToDo() {
   const { tasks, setTasks } = useReminder();
   const { saveData } = useReminder();
   const { title, setTitle } = useReminder();
+
+  const { time, setTime } = useReminder();
+  const [showPicker, setShowPicker] = useState(false);
+  const [mode, setMode] = useState<'date' | 'time'>('date');
+
+  const showMode = (currentMode: 'date' | 'time') => {
+    setShowPicker(true)
+    setMode(currentMode)
+  }
+  
 
 
   const updateTask = (index: number, value: string) => {
@@ -30,8 +40,8 @@ export default function ToDo() {
           <Text className='text-center text-white' style={[styles.shadow, { fontSize: hp(5.5) }]}>Add Reminder</Text>
         </View>
 
-         
-         {/* This is the textbox to add the title*/}
+
+        {/* This is the textbox to add the title*/}
         <View className='gap-4 flex-1' style={{ paddingHorizontal: wp(5) }}>
           <View className="flex-row gap-1 p-2 items-center bg-[#a3d9f7] rounded-[20]">
             <Text className='p-1' style={{ fontSize: hp(2) }}>Title:</Text>
@@ -44,15 +54,15 @@ export default function ToDo() {
           </View>
 
           {/* This is the textbox to add tasks*/}
-          <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} >
             {tasks.map((task, index) => (
-              <View className="flex-row p-2 items-center bg-[#a3d9f7] rounded-[20]" key={index} >
+              <View className="flex-row gap-1 p-2 items-center bg-[#a3d9f7] rounded-[20]" key={index} >
                 <Text className='p-1' style={{ fontSize: hp(2) }}>Task:</Text>
                 <TextInput
                   onChangeText={v => updateTask(index, v)}
                   placeholder={`Item ${index + 1}`}
                   placeholderTextColor="#999999"
-                  className="flex-1  text-neutral-700 bg-white rounded-xl pl-3"
+                  className="flex-1  text-neutral-700 bg-white rounded-xl p-3"
                 // clearButtonMode="while-editing" < = have the x to clear text 
                 />
 
@@ -68,19 +78,47 @@ export default function ToDo() {
             ))}
           </ScrollView>
         </View>
-      </View> 
+      </View>
+
+      {/*  the date and time modal */}
+      {showPicker && (
+        <View className='items-center mt-2'>
+            <DateTimePicker
+              testID='dateTimePicker'
+              value={time}
+              mode={mode}
+              display="default"
+              onValueChange={(event, date) => setTime(date)}
+              onDismiss={() => setShowPicker(false)}
+            />
+        </View>
+          )}
+
+      {/* This is the date and time picker */}
+      <View className='justify-end mt-4' style={{ paddingHorizontal: wp(5) }}>
+        <View className="flex-row gap-1 p-4 items-center bg-[#a3d9f7] rounded-[20] justify-between">
+          <TouchableOpacity onPress={() => showMode("date")} className='bg-[#fe9438] p-2 rounded-[20]'>
+           <Text className='text-white' style={{ fontSize: hp(2) }}>{time.toDateString()}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={ () => showMode("time")} className='bg-[#fe9438] p-2 rounded-[20] px-4'>
+           <Text className='text-white' style={{ fontSize: hp(2) }}>{time.toLocaleTimeString()}</Text>
+          </TouchableOpacity>
+          {/* <AntDesign name="arrow-left" size={24} color="black" />``
+          <Text style={{ fontSize: hp(2)}}>press</Text> */}
+        </View>
+      </View>
 
 
       <View className="flex-row items-center justify-between p-6" >
 
         {/* this is the delete button at the bottom*/}
         <Link href='/ToDo' asChild>
-          <Pressable className=' p-4 bg-[#ff0000] rounded-full' onPress={() => {}}>
+          <Pressable className=' p-4 bg-[#ff0000] rounded-full' onPress={() => { }}>
             <Text className='text-center text-white' style={[styles.shadow, { fontSize: hp(4) }]}>Delete</Text>
           </Pressable>
         </Link>
-        
-       {/* This is + button in the middle to add tasks */}
+
+        {/* This is + button in the middle to add tasks */}
         <Pressable onPress={() => {
           setTasks(prev => [...prev, ""]);   // add a row
         }} className='pl-1'>

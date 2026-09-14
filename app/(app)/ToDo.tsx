@@ -6,12 +6,15 @@ import { useReminder, type ReminderItem } from '../../components/Reminder';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getRoomId } from '../../common';
 import { db } from 'firebaseConfig';
-import { doc, setDoc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, collection, query, orderBy, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useAuth } from 'context/authContext';
 import ReminderList from '../../components/ReminderList';
-import { Ionicons} from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetModalProvider,
+} from '@gorhom/bottom-sheet';
 import {useAutoDelete} from '../../components/AutoDelete';
 
 
@@ -33,12 +36,25 @@ export default function list() {
 
   const snapPoints = useMemo(() => ['25%'], []);
 
-  const bottomSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+  const handlePresentModalPress = useCallback(() => {
+    bottomSheetModalRef.current?.present();
+  }, []);
+
+  const handleSheetChanges = useCallback((index: number) => {
+    console.log('handleSheetChanges', index);
+  }, []);
+
 
   const { user } = useAuth();
   const { logout } = useAuth()
-  // const {checked, setChecked} = useReminder();
-  const [reminders, setReminders] = useState<ReminderItem[]>([]);
+  const [reminders, setReminders] = useState<(ReminderItem & { id: string })[]>([]);
+
+  const saveChecker = async (reminderId: string, checker: boolean[]) => {
+    const roomId = getRoomId(user?.uid || user?.userId);
+    await updateDoc(doc(db, "rooms", roomId, "tasks", reminderId), { checker });
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -55,9 +71,12 @@ export default function list() {
 
     let unsub = onSnapshot(q, (snapshot) => {
       //console.log("snapshot docs:", snapshot.docs.length);
-      const allTasks = snapshot.docs.map(doc => doc.data());
+      const allTasks = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       //console.log("allTasks:", allTasks);
-      setReminders(allTasks as ReminderItem[]);
+      setReminders(allTasks as (ReminderItem & { id: string })[]);
     });
 
 
@@ -71,7 +90,8 @@ export default function list() {
 
   // DO NOT TOUCH ANYTHING ABOVE 
   return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
     <View className='flex-1'>
       <View className='flex-1'>
 
@@ -82,14 +102,14 @@ export default function list() {
 
         {/* The reminder component when you create the reminder*/}
         <View style={{ flex: 1, minHeight: 0 }}>
-          <ReminderList reminders={reminders} />
+          <ReminderList reminders={reminders} onCheckerChange={saveChecker} />
         </View>
       </View>
 
       {/* the plus and settingsbutton at the bottom */}
       <View className="flex-row items-end pl-4 pr-2 justify-between" style={{ paddingBottom: Platform.OS === 'android' ? 20 : 40 }}>
         
-        <Pressable onPress={() => { bottomSheetRef.current?.expand() }}>
+        <Pressable onPress={() => {handlePresentModalPress}}>
         <Image
               source={require('assets/myAssets/settings.png')}
             />
@@ -104,12 +124,14 @@ export default function list() {
         </Link>
       </View>
       
-      <BottomSheet
-        ref={bottomSheetRef}
+
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
         snapPoints={snapPoints}
         enablePanDownToClose={true}
+        onChange={handleSheetChanges}
         >
-          <BottomSheetView >
+          <BottomSheetView>
             <Text className='text-center' style={{ fontSize: hp(2) }}>Settings</Text>
 
             {/* Toggle auto delete when all is striked through */}
@@ -130,8 +152,9 @@ export default function list() {
         </Pressable>
 
           </BottomSheetView>
-      </BottomSheet>
+      </BottomSheetModal>
     </View>
+      </BottomSheetModalProvider>
      </GestureHandlerRootView>
   );
 };

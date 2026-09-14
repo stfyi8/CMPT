@@ -1,6 +1,6 @@
 // DO NOT TOUCH THIS FILE
 import { createContext, useContext, useState, useEffect, type PropsWithChildren } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+//import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from "react-native";
 import { getRoomId } from "common";
 import { useAuth } from "context/authContext";
@@ -11,8 +11,9 @@ import { addDoc, collection, doc, Timestamp} from 'firebase/firestore';
 export type ReminderItem = {
     title?: string;
     tasks?: string[];
-    // checked?: boolean;
     createdAt?: unknown;
+    time: Date;
+    checker: boolean[];
 };
 
 type ReminderContextValue = {
@@ -21,9 +22,9 @@ type ReminderContextValue = {
     saveData: () => Promise<void>;
     title: string;
     setTitle: React.Dispatch<React.SetStateAction<string>>;
-    // checked: boolean;
-    // setChecked: React.Dispatch<React.SetStateAction<boolean>>;
-
+    time: Date;
+    setTime: React.Dispatch<React.SetStateAction<Date>>;
+    checker: boolean[]
 };
 
 export const Reminder = createContext<ReminderContextValue | undefined>(undefined);
@@ -32,7 +33,8 @@ export const ReminderProvider = ({ children }: PropsWithChildren) => {
     const {user} = useAuth();
     const [tasks, setTasks] = useState<string[]>([""]);
     const [title, setTitle] = useState("");
-    //  const [checked, setChecked] = useState(false);
+    const [time, setTime] = useState(new Date())
+    const checker = tasks.map(() => false);
 
     const saveData = async () => {
         // await AsyncStorage.setItem("tasks", JSON.stringify(tasks));
@@ -47,7 +49,8 @@ export const ReminderProvider = ({ children }: PropsWithChildren) => {
             const newDoc = await addDoc(taskRef, {
                 title,
                 tasks,
-                //checked,
+                checker,
+                time,
                 createdAt: Timestamp.fromDate(new Date()),
             });
 
@@ -63,10 +66,10 @@ export const ReminderProvider = ({ children }: PropsWithChildren) => {
         }
     };
 
-   // console.log("tasks in context", tasks, title, checked);
+   console.log("tasks in context", tasks, title, time);
 
     return (
-        <Reminder.Provider value={{ tasks, setTasks, saveData, title, setTitle, // checked, setChecked
+        <Reminder.Provider value={{ tasks, setTasks, saveData, title, setTitle, time, setTime, checker
  }}>
             {children}
         </Reminder.Provider>
