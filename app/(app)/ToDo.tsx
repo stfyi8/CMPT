@@ -1,7 +1,7 @@
 import { Link } from 'expo-router';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import "global.css"
-import { Image, Pressable, StyleSheet, Text, View, Platform, Switch} from "react-native";
+import { Image, Pressable, StyleSheet, Text, View, Platform, Switch, TouchableOpacity} from "react-native";
 import { useReminder, type ReminderItem } from '../../components/Reminder';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getRoomId } from '../../common';
@@ -12,10 +12,11 @@ import ReminderList from '../../components/ReminderList';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   BottomSheetModal,
-  BottomSheetView,
   BottomSheetModalProvider,
+  BottomSheetView
 } from '@gorhom/bottom-sheet';
 import {useAutoDelete} from '../../components/AutoDelete';
+import { timerNotification } from "../../components/LocalNotification";
 
 
 export class PointStruct {
@@ -51,6 +52,11 @@ export default function list() {
   const { logout } = useAuth()
   const [reminders, setReminders] = useState<(ReminderItem & { id: string })[]>([]);
 
+  useEffect(() => {
+    if (reminders.length === 0) return;
+    void timerNotification({ reminders });
+  }, [reminders]);
+
   const saveChecker = async (reminderId: string, checker: boolean[]) => {
     const roomId = getRoomId(user?.uid || user?.userId);
     await updateDoc(doc(db, "rooms", roomId, "tasks", reminderId), { checker });
@@ -71,10 +77,16 @@ export default function list() {
 
     let unsub = onSnapshot(q, (snapshot) => {
       //console.log("snapshot docs:", snapshot.docs.length);
-      const allTasks = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const allTasks = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const storedTime = data.time;
+
+        return {
+          id: doc.id,
+          ...data,
+          time: storedTime?.toDate?.() ?? storedTime,
+        };
+      });
       //console.log("allTasks:", allTasks);
       setReminders(allTasks as (ReminderItem & { id: string })[]);
     });
@@ -109,18 +121,18 @@ export default function list() {
       {/* the plus and settingsbutton at the bottom */}
       <View className="flex-row items-end pl-4 pr-2 justify-between" style={{ paddingBottom: Platform.OS === 'android' ? 20 : 40 }}>
         
-        <Pressable onPress={() => {handlePresentModalPress}}>
+        <TouchableOpacity onPress={handlePresentModalPress}>
         <Image
               source={require('assets/myAssets/settings.png')}
             />
-      </Pressable>
+      </TouchableOpacity>
 
         <Link href='/AddReminder' asChild>
-          <Pressable>
+          <TouchableOpacity>
             <Image
               source={require('assets/myAssets/addButton.png')}
             />
-          </Pressable>
+          </TouchableOpacity>
         </Link>
       </View>
       
@@ -130,6 +142,7 @@ export default function list() {
         snapPoints={snapPoints}
         enablePanDownToClose={true}
         onChange={handleSheetChanges}
+        index = {1}
         >
           <BottomSheetView>
             <Text className='text-center' style={{ fontSize: hp(2) }}>Settings</Text>

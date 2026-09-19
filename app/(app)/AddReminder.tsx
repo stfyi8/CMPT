@@ -26,7 +26,6 @@ export default function ToDo() {
   }
   
 
-
   const updateTask = (index: number, value: string) => {
     setTasks(prev => prev.map((t, i) => (i === index ? value : t)));
   };
@@ -67,13 +66,13 @@ export default function ToDo() {
                 />
 
                 {/* This is the delete button for each task */}
-                <Pressable onPress={() => {
+                <TouchableOpacity onPress={() => {
                   if (tasks.length > 1) {
                     setTasks(prev => prev.filter((_, i) => i !== index)); // remove row
                   }
                 }}>
                   <Octicons name="x" size={hp(2)} color="#ef5151" />
-                </Pressable>
+                </TouchableOpacity>
               </View>
             ))}
           </ScrollView>
@@ -113,25 +112,25 @@ export default function ToDo() {
 
         {/* this is the delete button at the bottom*/}
         <Link href='/ToDo' asChild>
-          <Pressable className=' p-4 bg-[#ff0000] rounded-full' onPress={() => { }}>
+          <TouchableOpacity className=' p-4 bg-[#ff0000] rounded-full' onPress={() => {}}>
             <Text className='text-center text-white' style={[styles.shadow, { fontSize: hp(4) }]}>Delete</Text>
-          </Pressable>
+          </TouchableOpacity>
         </Link>
 
         {/* This is + button in the middle to add tasks */}
-        <Pressable onPress={() => {
+        <TouchableOpacity onPress={() => {
           setTasks(prev => [...prev, ""]);   // add a row
         }} className='pl-1'>
           <Image
             source={require('assets/myAssets/addButton.png')}
           />
-        </Pressable>
+        </TouchableOpacity>
 
         {/* This is the create button at the bottom */}
         <Link href='/ToDo' asChild>
-          <Pressable className=' p-4 bg-[#07d200] rounded-full' onPress={() => { saveData() }}>
+          <TouchableOpacity className=' p-4 bg-[#07d200] rounded-full' onPress={() => { saveData() }}>
             <Text className='text-center text-white' style={[styles.shadow, { fontSize: hp(4) }]}>Create</Text>
-          </Pressable>
+          </TouchableOpacity>
         </Link>
 
       </View>

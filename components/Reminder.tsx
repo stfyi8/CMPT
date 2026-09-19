@@ -5,7 +5,7 @@ import { Alert } from "react-native";
 import { getRoomId } from "common";
 import { useAuth } from "context/authContext";
 import { db } from 'firebaseConfig';
-import { addDoc, collection, doc, Timestamp} from 'firebase/firestore';
+import { addDoc, collection, doc, Timestamp, deleteDoc } from 'firebase/firestore';
 
 
 export type ReminderItem = {
@@ -14,6 +14,7 @@ export type ReminderItem = {
     createdAt?: unknown;
     time: Date;
     checker: boolean[];
+    // deleteData: (taskId: string) => Promise<void>;
 };
 
 type ReminderContextValue = {
@@ -25,12 +26,13 @@ type ReminderContextValue = {
     time: Date;
     setTime: React.Dispatch<React.SetStateAction<Date>>;
     checker: boolean[]
+    deleteData: (taskId: string) => Promise<void>;
 };
 
 export const Reminder = createContext<ReminderContextValue | undefined>(undefined);
 
 export const ReminderProvider = ({ children }: PropsWithChildren) => {
-    const {user} = useAuth();
+    const { user } = useAuth();
     const [tasks, setTasks] = useState<string[]>([""]);
     const [title, setTitle] = useState("");
     const [time, setTime] = useState(new Date())
@@ -66,11 +68,27 @@ export const ReminderProvider = ({ children }: PropsWithChildren) => {
         }
     };
 
-   console.log("tasks in context", tasks, title, time);
+    const deleteData = async (taskId: string) => {
+    try {
+        const roomId = getRoomId(user?.uid ?? user?.userId);
+
+        const taskRef = doc(db, "rooms", roomId, "tasks", taskId);
+
+        await deleteDoc(taskRef);
+
+        console.log("Task successfully deleted!");
+    } catch (error) {
+        console.error("Error deleting task:");
+    }
+};
+
+
+    console.log("tasks in context", tasks, title, time);
 
     return (
-        <Reminder.Provider value={{ tasks, setTasks, saveData, title, setTitle, time, setTime, checker
- }}>
+        <Reminder.Provider value={{
+            tasks, setTasks, saveData, title, setTitle, time, setTime, checker, deleteData
+        }}>
             {children}
         </Reminder.Provider>
     );
@@ -88,29 +106,29 @@ export const useReminder = () => {
 
 //asyncStorage not used anymore, but can keep if needed.
 // useEffect(() => {
-    //     const loadData = async () => {
-    //         try {
-    //             const stored = await AsyncStorage.getItem("tasks");
-    //             if (stored !== null) {
-    //                 setTasks(JSON.parse(stored));
-    //             }
-    //         } catch (e) {
-    //             console.error("Failed to load tasks", e);
-    //         }
-    //     };
-    //     loadData();
-    // }, []);
+//     const loadData = async () => {
+//         try {
+//             const stored = await AsyncStorage.getItem("tasks");
+//             if (stored !== null) {
+//                 setTasks(JSON.parse(stored));
+//             }
+//         } catch (e) {
+//             console.error("Failed to load tasks", e);
+//         }
+//     };
+//     loadData();
+// }, []);
 
-    //  useEffect(() => {
-    //     const loadData = async () => {
-    //         try {
-    //             const stored = await AsyncStorage.getItem("title");
-    //             if (stored !== null) {
-    //                 setTitle(JSON.parse(stored));
-    //             }
-    //         } catch (e) {
-    //             console.error("Failed to load title", e);
-    //         }
-    //     };
-    //     loadData();
-    // }, []);
+//  useEffect(() => {
+//     const loadData = async () => {
+//         try {
+//             const stored = await AsyncStorage.getItem("title");
+//             if (stored !== null) {
+//                 setTitle(JSON.parse(stored));
+//             }
+//         } catch (e) {
+//             console.error("Failed to load title", e);
+//         }
+//     };
+//     loadData();
+// }, []);

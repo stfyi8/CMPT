@@ -3,10 +3,12 @@ import type { ReminderItem } from "./Reminder";
 import { Checkbox } from 'expo-checkbox';
 import { Ionicons } from '@expo/vector-icons';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAutoDelete } from "./AutoDelete";
-import {useConst} from "./Const"
+import { useConst } from "./Const"
 import ReminderModal from "./ReminderModal"
+import { useReminder } from '../components/Reminder';
+
 //import { BlurView } from 'expo-blur';
 
 
@@ -15,10 +17,28 @@ type ReminderListProps = {
   onCheckerChange: (reminderId: string, checker: boolean[]) => Promise<void>;
 };
 
-export default function ReminderList({ reminders, onCheckerChange}: ReminderListProps) {
-  const {selectedReminder, setSelectedReminder} = useConst();
+export default function ReminderList({ reminders, onCheckerChange }: ReminderListProps) {
+  const { selectedReminder, setSelectedReminder } = useConst();
   const { isEnabled, setIsEnabled, } = useAutoDelete();
-  const [isDone, setIsDone] = useState(false);
+  const { deleteData } = useReminder()
+
+  useEffect(() => {
+    if (!isEnabled) return;
+
+    reminders.forEach((reminder) => {
+      const checker = selectedReminder?.checker;
+
+      const allChecked =
+        checker &&
+        checker.every(Boolean);
+
+      if (allChecked) {
+        deleteData(reminder.id);
+      }
+    });
+  }, [isEnabled, reminders, selectedReminder]);
+
+
 
 
   if (!isEnabled) {
@@ -39,7 +59,10 @@ export default function ReminderList({ reminders, onCheckerChange}: ReminderList
                       <Text style={{ fontSize: hp(2.5) }}>{reminder.title ?? "Untitled reminder"}</Text>
 
                       {/* add Due date here */}
-                      <Text style={{ fontSize: hp(1.5) }}>DD/MM/YY</Text>
+                      <Text style={{ fontSize: hp(1.5) }}>{
+                      reminder.time.toLocaleString()
+                      }</Text>
+
                     </View>
                   </View>
 
@@ -50,7 +73,7 @@ export default function ReminderList({ reminders, onCheckerChange}: ReminderList
                     </TouchableOpacity>
 
                     {/*delete button, color="#ef5151" */}
-                    <TouchableOpacity onPress={() => { alert("Reminder deleted" + index) }} style={{ padding: 5 }}>
+                    <TouchableOpacity onPress={() => { deleteData(reminder.id) }} style={{ padding: 5 }}>
                       <Ionicons name="trash" size={24} color="grey" />
                     </TouchableOpacity>
                   </View>
@@ -59,7 +82,7 @@ export default function ReminderList({ reminders, onCheckerChange}: ReminderList
             </View>
           ))
         }
-         <ReminderModal reminders={reminders}/>
+        <ReminderModal reminders={reminders} onCheckerChange={onCheckerChange} />
       </ScrollView>
 
     );
@@ -80,7 +103,8 @@ export default function ReminderList({ reminders, onCheckerChange}: ReminderList
                     <Text style={[{ fontSize: hp(2.5) }]}>{reminder.title ?? "Untitled reminder"}</Text>
 
                     {/* add Due date here */}
-                    <Text style={[{ fontSize: hp(1.5) }]}>DD/MM/YY</Text>
+                    <Text style={{ fontSize: hp(1.5) }}>{reminder.time.toLocaleString()}</Text>
+
                   </View>
                 </View>
                 {/*edit button*/}
@@ -89,10 +113,15 @@ export default function ReminderList({ reminders, onCheckerChange}: ReminderList
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
-          ))
+            // if statement? if(isEnabled && selectedReminder.checker){return () => deleteData(reminder.id)}
+          )
+          )
         }
-        <ReminderModal reminders={reminders}/>
+        <ReminderModal reminders={reminders} onCheckerChange={onCheckerChange} />
+
       </ScrollView>
+
+
 
     )
   }

@@ -4,13 +4,16 @@ import { Checkbox } from 'expo-checkbox';
 import { Ionicons } from '@expo/vector-icons';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import {useConst} from "./Const"
+import { useAutoDelete } from "./AutoDelete";
+import {useReminder} from "./Reminder"
 //import { BlurView } from 'expo-blur';
 
 type ReminderListProps = {
   reminders: (ReminderItem & { id: string })[];
+  onCheckerChange: (reminderId: string, checker: boolean[]) => Promise<void>;
 };
 
-const ReminderModal = ({ reminders}: ReminderListProps) => {
+const ReminderModal = ({reminders, onCheckerChange}: ReminderListProps) => {
     const {selectedReminder, setSelectedReminder} = useConst();
     const closeModal = () => setSelectedReminder(null);
   return (
@@ -45,7 +48,7 @@ const ReminderModal = ({ reminders}: ReminderListProps) => {
                       value={selectedReminder.checker?.[taskIndex] ?? false}
                       onValueChange={ (checked) => {
                         if (!selectedReminder) return;
-                        
+
                         const updatedChecker = Array.from(
                           { length: selectedReminder.tasks?.length ?? 0 },
                           (_, index) => selectedReminder.checker?.[index] ?? false
@@ -56,16 +59,14 @@ const ReminderModal = ({ reminders}: ReminderListProps) => {
                           ...selectedReminder,
                           checker: updatedChecker,
                         });
-                      }}
+                        onCheckerChange(selectedReminder.id, updatedChecker);
+                      }
+                    }
                     />
                     <Text style={[{fontSize: hp(3), textAlign: "center"},  selectedReminder.checker?.[taskIndex] && {textDecorationLine: 'line-through', color: '#565555'}]}>{task}</Text>
                   </View>
               ))}
               </ScrollView>
-
-              <Text style={{ fontSize: hp(2), textAlign: 'center', marginBottom: 12 }}>
-                {selectedReminder?.time?.toLocaleString()}
-              </Text>
 
               {/*close Modal button*/}
               <TouchableOpacity onPress={closeModal} style={{ padding: 15, position: "absolute", marginLeft: Platform.OS === 'android' ? wp(60) : wp(54), marginTop: Platform.OS === 'android' ? wp(67) : wp(59) }} className=" rounded-[20]">

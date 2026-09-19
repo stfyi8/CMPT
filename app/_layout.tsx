@@ -10,6 +10,7 @@ import { ReminderProvider } from '../components/Reminder';
 import { AutoDeleteProvider } from "../components/AutoDelete";
 import { ConstProvider } from "../components/Const";
 
+
 const MainLayout =()=>{
   const{isAuthenticated} = useAuth();
   const segments = useSegments();
@@ -20,13 +21,11 @@ const MainLayout =()=>{
       if(typeof isAuthenticated=='undefined') return;
       const inApp = segments[0]=='(app)'
       if(isAuthenticated && !inApp){
-          (async () => {
-            router.replace('ToDo')
-          })();
-      }else if(isAuthenticated==false){
-          router.replace('SignIn')
+        router.replace('/ToDo');
+      }else if(!isAuthenticated && inApp){
+        router.replace('/SignIn');
       }
-  }, [isAuthenticated])
+    }, [isAuthenticated, segments, router])
 
   return <Slot />
 }

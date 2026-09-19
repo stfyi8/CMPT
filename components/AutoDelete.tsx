@@ -1,5 +1,6 @@
 // DO NOT TOUCH THIS FILE
 import { createContext, useContext, useState, useEffect, type PropsWithChildren } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export type AutoDeleteItem = {
@@ -10,6 +11,7 @@ type AutoDeleteContextValue = {
     isEnabled: boolean;
     setIsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
     toggleSwitch: () => void;
+    saveAuto: () => void;
 };
 
 export const AutoDelete = createContext<AutoDeleteContextValue | undefined>(undefined);
@@ -21,8 +23,12 @@ export const AutoDeleteProvider = ({ children }: PropsWithChildren) => {
         setIsEnabled(previousState => !previousState);
     };
 
+    const saveAuto = async () =>{
+         await AsyncStorage.setItem("autoDelete", JSON.stringify(isEnabled));
+    }
+
     return (
-        <AutoDelete.Provider value={{ isEnabled, setIsEnabled, toggleSwitch }}>
+        <AutoDelete.Provider value={{ isEnabled, setIsEnabled, toggleSwitch, saveAuto }}>
             {children}
         </AutoDelete.Provider>
     );
