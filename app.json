@@ -20,19 +20,22 @@
       "expo-router",
       "expo-status-bar",
       "@react-native-community/datetimepicker",
-       ["expo-app-blocker", {
-        "ios": {
-          // "appGroup": "group.com.yourapp.blocker",
-          "shield": {
-            "title": "Hold on!",
-            "subtitle": "{appName} is blocked.",
-            "primaryButtonLabel": "Earn Free Time",
-            "primaryButtonColor": "#fb6107",
-            "backgroundColor": "#f6f6f6",
-            "backgroundBlurStyle": "systemThickMaterialLight"
+      [
+        "expo-app-blocker",
+        {
+          "ios": {
+            // "appGroup": "group.com.yourapp.blocker",
+              "shield": {
+              "title": "Hold on!",
+              "subtitle": "{appName} is blocked.",
+              "primaryButtonLabel": "Earn Free Time",
+              "primaryButtonColor": "#fb6107",
+              "backgroundColor": "#f6f6f6",
+              "backgroundBlurStyle": "systemThickMaterialLight"
+            }
           }
         }
-      }]
+      ]
     ],
     "orientation": "portrait",
     "icon": "./assets/myAssets/logo.png",
@@ -44,7 +47,7 @@
       "supportsTablet": true,
       "deploymentTarget": "16.4",
       "bundleIdentifier": "com.stfyi.CMPT",
-      // "appleTeamId": "YOUR_TEAM_ID",
+      "appleTeamId": "YOUR_TEAM_ID",
       "entitlements": {
         "com.apple.developer.family-controls": true,
         // "com.apple.security.application-groups": ["group.com.yourapp.blocker"]
@@ -56,6 +59,50 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.stfyi.CMPT"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "bundleIdentifier": "com.stfyi.CMPT.ShieldConfiguration",
+                  "targetName": "ShieldConfiguration",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": [
+                      "group.expo.app-blocker"
+                    ]
+                  }
+                },
+                {
+                  "bundleIdentifier": "com.stfyi.CMPT.ShieldAction",
+                  "targetName": "ShieldAction",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": [
+                      "group.expo.app-blocker"
+                    ]
+                  }
+                },
+                {
+                  "bundleIdentifier": "com.stfyi.CMPT.DeviceActivityMonitor",
+                  "targetName": "DeviceActivityMonitor",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": [
+                      "group.expo.app-blocker"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "613c5b28-6a3e-4a92-8a79-ac8f3dfb6778"
+      }
     }
   }
 }

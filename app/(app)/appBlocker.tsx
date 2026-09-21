@@ -1,122 +1,121 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from "react";
+import { Button, Text, View } from "react-native";
+
 import {
-  getPermissionStatus,
-  requestPermissions,
-  setBlockConfiguration,
-  getBlockConfiguration,
+  getInstalledApps,
+  setBlockedApps,
+  getBlockedApps,
   clearAllBlocks,
   temporaryUnlock,
-  isTemporarilyUnlocked,
-  getRemainingUnlockTime,
-  relockApps,
-  addPendingUnlockListener,
-  checkAndClearPendingUnlock,
-  FamilyActivityPickerView,
-  type PermissionStatus,
-  type IOSBlockedItem,
-  type FamilyActivityPickerSelectionEvent,
-} from 'expo-app-blocker';
+} from "expo-app-blocker";
 
-export default function appBlocker() {
-  const [permissions, setPermissions] = useState<PermissionStatus | null>(null);
-  const [blockedApps, setBlockedApps] = useState<IOSBlockedItem[]>([]);
-  const [selectionData, setSelectionData] = useState('');
-  const [unlocked, setUnlocked] = useState(false);
+// Apps that we NEVER want to block.
+const ESSENTIAL_APPS = [
+  "com.android.settings",
+  "com.google.android.dialer",
+  "com.google.android.contacts",
 
-  // Load permissions and existing blocks on mount
+  // IMPORTANT:
+  // Add your own application's package name here.
+  "com.mycompany.myblocker",
+];
+
+export default function App() {
+  const [blocked, setBlocked] = useState(true);
+  const [conditionDone, setConditionDone] = useState(false);
+  const [blockedCount, setBlockedCount] = useState(0);
+
   useEffect(() => {
-    getPermissionStatus().then(setPermissions);
-    const config = getBlockConfiguration();
-    if (config?.blockedItems?.length) {
-      setBlockedApps(config.blockedItems);
-    }
+    blockNonEssentialApps();
   }, []);
 
-  // Listen for shield button taps
-  useEffect(() => {
-    if (checkAndClearPendingUnlock()) {
-      // User tapped shield button while app was closed
-    }
-    const sub = addPendingUnlockListener(() => {
-      // User tapped shield button — show your unlock UI
+  async function blockNonEssentialApps() {
+    // 1. Get all installed apps
+    const installedApps = await getInstalledApps();
+
+    // 2. Remove apps that we consider essential
+    const appsToBlock = installedApps.filter(
+      (app) => !ESSENTIAL_APPS.includes(app.packageName)
+    );
+
+    // 3. Get just the package names
+    const packageNames = appsToBlock.map(
+      (app) => app.packageName
+    );
+
+    // 4. Tell the native blocker to block them
+    await setBlockedApps(packageNames);
+
+    // 5. Update our React state
+    setBlockedCount(packageNames.length);
+    setBlocked(true);
+    setConditionDone(false);
+
+    console.log("Blocked apps:", appsToBlock);
+  }
+
+  async function completeCondition() {
+    // Example condition:
+    // User must wait 10 seconds.
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 10_000);
     });
-    return () => sub?.remove();
-  }, []);
 
-  // Handle inline picker selection
-  const handleSelectionChange = async (event: FamilyActivityPickerSelectionEvent) => {
-    const items = event.items.filter(i => i.type !== 'summary');
-    setBlockedApps(items);
-    setSelectionData(event.selectionData);
+    // Condition is complete
+    setConditionDone(true);
 
-    if (items.length > 0) {
-      await setBlockConfiguration({ blockedItems: items, isActive: false });
-    } else {
-      clearAllBlocks();
-    }
-  };
+    // Give the user 5 minutes of access
+    await temporaryUnlock(5);
 
-  if (Platform.OS !== 'ios') return null;
+    setBlocked(false);
+  }
+
+  async function blockAgain() {
+    await blockNonEssentialApps();
+  }
+
+  async function unblockEverything() {
+    await clearAllBlocks();
+
+    setBlocked(false);
+    setBlockedCount(0);
+  }
 
   return (
-    <View style={styles.container}>
-      {/* Permission request */}
-      {!permissions?.allGranted && (
-        <TouchableOpacity
-          style={styles.button}
-          onPress={async () => {
-            const result = await requestPermissions();
-            setPermissions(result);
-          }}
-        >
-          <Text style={styles.buttonText}>Enable Screen Time</Text>
-        </TouchableOpacity>
+    <View style={{ padding: 40 }}>
+      <Text style={{ fontSize: 24 }}>
+        App Blocker
+      </Text>
+
+      <Text style={{ marginVertical: 20 }}>
+        Apps blocked: {blockedCount}
+      </Text>
+
+      <Text style={{ marginBottom: 20 }}>
+        Status: {blocked ? "BLOCKED" : "UNBLOCKED"}
+      </Text>
+
+      {blocked && !conditionDone && (
+        <Button
+          title="Complete condition"
+          onPress={completeCondition}
+        />
       )}
 
-      {/* Inline app picker */}
-      {permissions?.allGranted && (
-        <View style={styles.pickerContainer}>
-          <FamilyActivityPickerView
-            initialSelection={selectionData}
-            onSelectionChange={handleSelectionChange}
-            theme="light"
-            style={{ height: 500 }}
-          />
-        </View>
+      {!blocked && (
+        <Button
+          title="Block apps again"
+          onPress={blockAgain}
+        />
       )}
 
-      {/* Actions */}
-      {blockedApps.length > 0 && (
-        <View style={styles.actions}>
-          <Text>{blockedApps.length} apps blocked</Text>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={async () => {
-              await temporaryUnlock(15);
-              setUnlocked(true);
-            }}
-          >
-            <Text style={styles.buttonText}>Unlock 15 min</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => { clearAllBlocks(); setBlockedApps([]); }}
-          >
-            <Text style={styles.buttonText}>Clear All</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View style={{ marginTop: 20 }}>
+        <Button
+          title="Emergency: clear all blocks"
+          onPress={unblockEverything}
+        />
+      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  pickerContainer: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#e8e8e8' },
-  actions: { marginTop: 16, gap: 12 },
-  button: { backgroundColor: '#fb6107', padding: 16, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-});
