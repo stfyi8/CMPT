@@ -1,7 +1,7 @@
 import { Link } from 'expo-router';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import "global.css"
-import { Image, Pressable, StyleSheet, Text, View, Platform, Switch, TouchableOpacity} from "react-native";
+import { Image, Pressable, StyleSheet, Text, View, Platform, Switch, TouchableOpacity, Alert } from "react-native";
 import { useReminder, type ReminderItem } from '../../components/Reminder';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getRoomId } from '../../common';
@@ -15,8 +15,45 @@ import {
   BottomSheetModalProvider,
   BottomSheetView
 } from '@gorhom/bottom-sheet';
-import {useAutoDelete} from '../../components/AutoDelete';
+import { useAutoDelete } from '../../components/AutoDelete';
 import { timerNotification } from "../../components/LocalNotification";
+import {
+  getBlockedApps,
+  getInstalledApps,
+  openOverlaySettings,
+  openUsageStatsSettings,
+  setBlockedApps,
+  startMonitoring,
+  clearAllBlocks,
+} from "expo-app-blocker";
+import { useConst } from "../../components/Const"
+
+type InstalledApp = Awaited<
+  ReturnType<typeof getInstalledApps>
+>[number];
+
+const ESSENTIAL_PACKAGES = new Set([
+  "com.android.settings",
+  "com.android.systemui",
+  "com.google.android.dialer",
+  "com.android.dialer",
+  "com.android.launcher",
+  "com.stfyi.CMPT",
+  "com.android.camera2",
+  "com.google.android.apps.photos",
+  "com.google.apps.gm",
+  "com.google.android.calendar",
+  "com.google.android.deskclock",
+  "com.google.android.contacts",
+  "com.google.android.apps.docs",
+  "com.google.android.documentsui",
+  "com.google.android.gm",
+  "com.android.vending",
+  "com.google.android.apps.maps",
+  // "com.google.android.apps.messaging",
+  "com.google.android.apps.safetyhub",
+  "com.android.stk",
+]);
 
 
 export class PointStruct {
@@ -33,11 +70,15 @@ export class PointStruct {
 export default function list() {
   const { isEnabled, setIsEnabled, } = useAutoDelete();
   const { toggleSwitch } = useAutoDelete();
-
-
+  const [installedApps, setInstalledApps] = useState<InstalledApp[]>([]);
+  const [blockedApps, setBlockedApps] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const snapPoints = useMemo(() => ['25%'], []);
-
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const { user } = useAuth();
+  const { logout } = useAuth()
+  const [reminders, setReminders] = useState<(ReminderItem & { id: string })[]>([]);
+  const { selectedReminder, setSelectedReminder } = useConst();
 
   const handlePresentModalPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
@@ -47,10 +88,104 @@ export default function list() {
     console.log('handleSheetChanges', index);
   }, []);
 
+  useEffect(() => {
+    initialize();
+  }, []); // init initialize
 
-  const { user } = useAuth();
-  const { logout } = useAuth()
-  const [reminders, setReminders] = useState<(ReminderItem & { id: string })[]>([]);
+
+  async function blockAllNonEssentialApps() {
+    if (installedApps.length === 0) return;
+
+    let cancelled = false;
+    try {
+      const packagesToBlock = installedApps
+        .map((app) => app.packageName)
+        .filter(
+          (packageName) => !ESSENTIAL_PACKAGES.has(packageName)
+        );
+
+      console.log("Blocking non-essential apps:", packagesToBlock);
+
+      await setBlockedApps(packagesToBlock);
+      await startMonitoring();
+
+      if (!cancelled) {
+        setBlockedApps(packagesToBlock);
+      }
+    } catch (error) {
+      console.error("Failed to block apps:", error);
+
+      if (!cancelled) {
+        Alert.alert("Error", "Unable to block non-essential apps.");
+      }
+    }
+    blockAllNonEssentialApps();
+
+    return () => {
+      cancelled = true;
+    };
+  }
+
+  useEffect(() => {
+    reminders.filter((reminder) => {
+        const timestamp = reminder.time.getTime();
+        if (timestamp){
+          blockAllNonEssentialApps()
+        }
+    });
+  },[]) // time
+  
+
+  async function initialize() {
+    try {
+      setLoading(true);
+
+      const apps = await getInstalledApps();
+      const existingBlockedApps = await getBlockedApps();
+
+      setBlockedApps(existingBlockedApps);
+      setInstalledApps(apps);
+
+      await startMonitoring();
+
+      console.log(
+        "Installed apps:",
+        apps.map((app) => app.packageName)
+      );
+    } catch (error) {
+      console.error("Failed to initialize app blocker:", error);
+      Alert.alert("Error", "Unable to initialize the app blocker.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function unlockApps() {
+    try {
+      await clearAllBlocks();
+      setBlockedApps([]);
+      Alert.alert("Tasks completed", "All apps have been unlocked.");
+    } catch (error) {
+      console.error("Failed to unlock apps:", error);
+      Alert.alert("Error", "Unable to unlock apps.");
+    }
+  }
+
+  useEffect(() => {
+    if (!isEnabled) return;
+
+    reminders.forEach((reminder) => {
+      const checker = selectedReminder?.checker;
+
+      const allChecked =
+        checker &&
+        checker.every(Boolean);
+
+      if (allChecked) {
+        unlockApps();
+      }
+    });
+  }, [isEnabled, reminders, selectedReminder]);
 
   useEffect(() => {
     if (reminders.length === 0) return;
@@ -104,71 +239,71 @@ export default function list() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
-    <View className='flex-1'>
-      <View className='flex-1'>
+        <View className='flex-1'>
+          <View className='flex-1'>
 
-        {/* The To-Do-List header on top*/}
-        <View className='bg-[#fe9438] pb-7 rounded-[30]' style={{ paddingTop: Platform.OS === 'android' ? 60 : 70 }}>
-          <Text className='text-6xl text-center' style={[styles.shadow, { fontSize: hp(5.5) }]}>To-Do-List</Text>
+            {/* The To-Do-List header on top*/}
+            <View className='bg-[#fe9438] pb-7 rounded-[30]' style={{ paddingTop: Platform.OS === 'android' ? 60 : 70 }}>
+              <Text className='text-6xl text-center' style={[styles.shadow, { fontSize: hp(5.5) }]}>To-Do-List</Text>
+            </View>
+
+            {/* The reminder component when you create the reminder*/}
+            <View style={{ flex: 1, minHeight: 0 }}>
+              <ReminderList reminders={reminders} onCheckerChange={saveChecker} />
+            </View>
+          </View>
+
+          {/* the plus and settingsbutton at the bottom */}
+          <View className="flex-row items-end pl-4 pr-2 justify-between" style={{ paddingBottom: Platform.OS === 'android' ? 20 : 40 }}>
+
+            <TouchableOpacity onPress={handlePresentModalPress}>
+              <Image
+                source={require('assets/myAssets/settings.png')}
+              />
+            </TouchableOpacity>
+
+            <Link href='/AddReminder' asChild>
+              <TouchableOpacity>
+                <Image
+                  source={require('assets/myAssets/addButton.png')}
+                />
+              </TouchableOpacity>
+            </Link>
+          </View>
+
+
+          <BottomSheetModal
+            ref={bottomSheetModalRef}
+            snapPoints={snapPoints}
+            enablePanDownToClose={true}
+            onChange={handleSheetChanges}
+            index={1}
+          >
+            <BottomSheetView>
+              <Text className='text-center' style={{ fontSize: hp(2) }}>Settings</Text>
+
+              {/* Toggle auto delete when all is striked through */}
+              <View className="flex-row items-center justify-between p-6" >
+                <Text style={{ fontSize: hp(2) }}>Auto Delete</Text>
+                <Switch
+                  trackColor={{ false: '#767577', true: '#fe9438' }}
+                  ios_backgroundColor="#3e3e3e"
+                  onValueChange={toggleSwitch}
+                  value={isEnabled}
+                  className=''
+                />
+              </View>
+
+              {/* logout button */}
+              <Pressable onPress={handleLogout} className='p-4 bg-[#fe9438] rounded-lg m-2'>
+                <Text className='text-center text-white font-bold' style={[{ fontSize: hp(2) }]}>logout</Text>
+              </Pressable>
+
+            </BottomSheetView>
+          </BottomSheetModal>
         </View>
-
-        {/* The reminder component when you create the reminder*/}
-        <View style={{ flex: 1, minHeight: 0 }}>
-          <ReminderList reminders={reminders} onCheckerChange={saveChecker} />
-        </View>
-      </View>
-
-      {/* the plus and settingsbutton at the bottom */}
-      <View className="flex-row items-end pl-4 pr-2 justify-between" style={{ paddingBottom: Platform.OS === 'android' ? 20 : 40 }}>
-        
-        <TouchableOpacity onPress={handlePresentModalPress}>
-        <Image
-              source={require('assets/myAssets/settings.png')}
-            />
-      </TouchableOpacity>
-
-        <Link href='/AddReminder' asChild>
-          <TouchableOpacity>
-            <Image
-              source={require('assets/myAssets/addButton.png')}
-            />
-          </TouchableOpacity>
-        </Link>
-      </View>
-      
-
-      <BottomSheetModal
-        ref={bottomSheetModalRef}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        onChange={handleSheetChanges}
-        index = {1}
-        >
-          <BottomSheetView>
-            <Text className='text-center' style={{ fontSize: hp(2) }}>Settings</Text>
-
-            {/* Toggle auto delete when all is striked through */}
-            <View className="flex-row items-center justify-between p-6" >
-          <Text style={{ fontSize: hp(2) }}>Auto Delete</Text>
-          <Switch
-          trackColor={{false: '#767577', true: '#fe9438'}}
-          ios_backgroundColor="#3e3e3e"
-          onValueChange={toggleSwitch}
-          value={isEnabled}
-          className=''
-        />
-        </View>
-
-          {/* logout button */}
-        <Pressable onPress={handleLogout} className='p-4 bg-[#fe9438] rounded-lg m-2'>
-          <Text className='text-center text-white font-bold' style={[{fontSize: hp(2)}]}>logout</Text>
-        </Pressable>
-
-          </BottomSheetView>
-      </BottomSheetModal>
-    </View>
       </BottomSheetModalProvider>
-     </GestureHandlerRootView>
+    </GestureHandlerRootView>
   );
 };
 

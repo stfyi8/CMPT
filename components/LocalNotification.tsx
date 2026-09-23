@@ -14,19 +14,6 @@ export async function iniNotification() {
     });
 }
 
-// export async function showLocalNotification () {
-//     await notifee.displayNotification({
-//         title: 'Do your homework',
-//         body:'',
-//         android:{
-//             channelId:'default',
-//             smallIcon:""
-//         }
-//     })
-
-// }
-
-
 export async function timerNotification({reminders}: ReminderListProps) {
     await iniNotification();
 
