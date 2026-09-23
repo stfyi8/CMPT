@@ -8,7 +8,7 @@ export default function StartPage() {
     <View style={styles.container}>
       <View style={{flexDirection:"row"}}>
       <View style={styles.divider}/>
-      <Text style={styles.text}>Streamline your schedules</Text>
+      <Text style={styles.text}>Streamline Your Schedules</Text>
       <View style={styles.divider}/>
       </View>
       <ActivityIndicator size='large' color="#fe9438" className="pt-10"/>

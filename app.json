@@ -47,7 +47,7 @@
       "supportsTablet": true,
       "deploymentTarget": "16.4",
       "bundleIdentifier": "com.stfyi.CMPT",
-      "appleTeamId": "YOUR_TEAM_ID",
+      //"appleTeamId": "YOUR_TEAM_ID",
       "entitlements": {
         "com.apple.developer.family-controls": true,
         // "com.apple.security.application-groups": ["group.com.yourapp.blocker"]
@@ -55,7 +55,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/myAssets/logo.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.stfyi.CMPT"
