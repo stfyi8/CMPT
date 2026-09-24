@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { Checkbox } from 'expo-checkbox';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
@@ -84,21 +84,23 @@ export default function BlockedScreen() {
   }, [reminders, activeReminders.length]);
 
   return (
-    <View style={styles.container}>
-      <Text style={{ fontSize: hp(3), textAlign: "center" }}>{appName} is blocked</Text>
-
+      <View className="bg-[#fe9438] flex-1">
+        <View className="bg-[#FFFFFF] flex-1 m-4 rounded-[30]" >
       {activeReminders.length === 0 && (
         <Text style={{ fontSize: hp(2), textAlign: "center", marginTop: 12 }}>
           No overdue tasks right now.
         </Text>
       )}
+      
 
       {activeReminders.map((reminder) => (
         <View key={reminder.id} style={{ marginTop: 16 }}>
-          <Text style={{ fontSize: hp(2.5) }}>{reminder.title ?? "Untitled reminder"}</Text>
-
+          <View className='bg-[#a3d9f7] p-4 rounded-[30] m-2' >
+          <Text className=' text-center' style={[ {fontSize: hp(5.5)}]}>{reminder.title ?? "Untitled reminder"}</Text>
+          </View>
+        <View className="-4 bg-[#a3d9f7] rounded-[20]" style={{ margin: 10 }}>
           {(reminder.tasks ?? []).map((task, taskIndex) => (
-            <View key={taskIndex} style={styles.taskRow}>
+            <View key={taskIndex} style={styles.taskRow}> 
               <Checkbox
                 value={reminder.checker?.[taskIndex] ?? false}
                 onValueChange={(checked) => {
@@ -123,20 +125,19 @@ export default function BlockedScreen() {
               </Text>
             </View>
           ))}
+          </View>
         </View>
       ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
   taskRow: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 6,
+    padding:10,
   },
 });

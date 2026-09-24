@@ -24,8 +24,8 @@ export async function timerNotification({reminders}: ReminderListProps) {
 
     await Promise.all(futureReminders.map((reminder) =>
         notifee.createTriggerNotification({
-            title: reminder.title ?? 'Time to complete your tasks',
-            body: reminder.tasks?.join('\n'),
+            title: reminder.title ?? 'Time to complete your tasks (App blocker is active)',
+            body: "Tasks:" + reminder.tasks?.join,
             android: {
                 channelId: 'default',
                 smallIcon: 'ic_launcher',
