@@ -69,7 +69,7 @@ const ReminderModal = ({reminders, onCheckerChange}: ReminderListProps) => {
               </ScrollView>
 
               {/*close Modal button*/}
-              <TouchableOpacity onPress={closeModal} style={{ padding: 15, position: "absolute", marginLeft: Platform.OS === 'android' ? wp(60) : wp(54), marginTop: Platform.OS === 'android' ? wp(67) : wp(59) }} className=" rounded-[20]">
+              <TouchableOpacity onPress={closeModal} style={{ padding: 15, position: "absolute", marginLeft: Platform.OS === 'android' ? wp(53) : wp(54), marginTop: Platform.OS === 'android' ? wp(57) : wp(59) }} className=" rounded-[20]">
                 <Image
                   source={require('assets/myAssets/closeModal.png')}
                   style={{ width: 90, height: 87 }}

@@ -4,7 +4,7 @@ import "global.css"
 import { Image, Pressable, StyleSheet, Text, View, Platform, Switch, TouchableOpacity, Alert } from "react-native";
 import { useReminder, type ReminderItem } from '../../components/Reminder';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { getRoomId } from '../../common';
+import { getRoomId, isReminderComplete, unblockApps } from '../../common';
 import { db } from 'firebaseConfig';
 import { doc, setDoc, collection, query, orderBy, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useAuth } from 'context/authContext';
@@ -20,11 +20,8 @@ import { timerNotification } from "../../components/LocalNotification";
 import {
   getBlockedApps,
   getInstalledApps,
-  openOverlaySettings,
-  openUsageStatsSettings,
-  setBlockedApps,
+  setBlockedApps as setNativeBlockedApps, // renamed to avoid collision with local state setter
   startMonitoring,
-  clearAllBlocks,
 } from "expo-app-blocker";
 import { useConst } from "../../components/Const"
 
@@ -38,6 +35,8 @@ const ESSENTIAL_PACKAGES = new Set([
   "com.google.android.dialer",
   "com.android.dialer",
   "com.android.launcher",
+  "com.android.launcher3",
+  "com.google.android.apps.nexuslauncher",
   "com.stfyi.CMPT",
   "com.android.camera2",
   "com.google.android.apps.photos",
@@ -80,6 +79,12 @@ export default function list() {
   const [reminders, setReminders] = useState<(ReminderItem & { id: string })[]>([]);
   const { selectedReminder, setSelectedReminder } = useConst();
 
+  // Tracks whether we last evaluated as "blocked" or "unblocked", so the
+  // combined block/unlock effect below only calls the native block/unlock
+  // functions (and fires their Alerts) on an actual state transition,
+  // instead of on every 15s poll.
+  const wasBlockedRef = useRef(false);
+
   const handlePresentModalPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
   }, []);
@@ -95,46 +100,54 @@ export default function list() {
 
   async function blockAllNonEssentialApps() {
     if (installedApps.length === 0) return;
-
-    let cancelled = false;
     try {
       const packagesToBlock = installedApps
         .map((app) => app.packageName)
-        .filter(
-          (packageName) => !ESSENTIAL_PACKAGES.has(packageName)
-        );
+        .filter((packageName) => !ESSENTIAL_PACKAGES.has(packageName));
 
-      console.log("Blocking non-essential apps:", packagesToBlock);
-
-      await setBlockedApps(packagesToBlock);
+      await setNativeBlockedApps(packagesToBlock); // actually calls the native library
       await startMonitoring();
-
-      if (!cancelled) {
-        setBlockedApps(packagesToBlock);
-      }
+      setBlockedApps(packagesToBlock); // local UI state
     } catch (error) {
       console.error("Failed to block apps:", error);
-
-      if (!cancelled) {
-        Alert.alert("Error", "Unable to block non-essential apps.");
-      }
+      Alert.alert("Error", "Unable to block non-essential apps.");
     }
-    blockAllNonEssentialApps();
-
-    return () => {
-      cancelled = true;
-    };
   }
 
+  async function unlockApps() {
+    try {
+      unblockApps();
+      setBlockedApps([]);
+      Alert.alert("Tasks completed", "All apps have been unlocked.");
+    } catch (error) {
+      console.error("Failed to unlock apps:", error);
+      Alert.alert("Error", "Unable to unlock apps.");
+    }
+  }
+
+ 
   useEffect(() => {
-    reminders.filter((reminder) => {
-        const timestamp = reminder.time.getTime();
-        if (timestamp){
-          blockAllNonEssentialApps()
-        }
-    });
-  },[]) // time
-  
+    const evaluate = () => {
+      const now = Date.now();
+
+      const shouldBeBlocked = reminders.some((reminder) => {
+        const dueTime = reminder.time?.getTime?.();
+        return dueTime && now >= dueTime && !isReminderComplete(reminder);
+      });
+
+      if (shouldBeBlocked && !wasBlockedRef.current) {
+        blockAllNonEssentialApps();
+      } else if (!shouldBeBlocked && wasBlockedRef.current) {
+        unlockApps();
+      }
+
+      wasBlockedRef.current = shouldBeBlocked;
+    };
+
+    evaluate();
+    const interval = setInterval(evaluate, 5000);
+    return () => clearInterval(interval);
+  }, [reminders, installedApps]); // combined block/unlock condition
 
   async function initialize() {
     try {
@@ -145,6 +158,7 @@ export default function list() {
 
       setBlockedApps(existingBlockedApps);
       setInstalledApps(apps);
+      wasBlockedRef.current = existingBlockedApps.length > 0;
 
       await startMonitoring();
 
@@ -159,33 +173,6 @@ export default function list() {
       setLoading(false);
     }
   }
-
-  async function unlockApps() {
-    try {
-      await clearAllBlocks();
-      setBlockedApps([]);
-      Alert.alert("Tasks completed", "All apps have been unlocked.");
-    } catch (error) {
-      console.error("Failed to unlock apps:", error);
-      Alert.alert("Error", "Unable to unlock apps.");
-    }
-  }
-
-  useEffect(() => {
-    if (!isEnabled) return;
-
-    reminders.forEach((reminder) => {
-      const checker = selectedReminder?.checker;
-
-      const allChecked =
-        checker &&
-        checker.every(Boolean);
-
-      if (allChecked) {
-        unlockApps();
-      }
-    });
-  }, [isEnabled, reminders, selectedReminder]);
 
   useEffect(() => {
     if (reminders.length === 0) return;
@@ -228,12 +215,12 @@ export default function list() {
 
 
     return unsub;
-  }, [user?.uid]);
+  }, [user?.uid]); //firebase
 
   const createRoomIfNotExists = async () => {
     const roomId = getRoomId(user?.uid || user?.userId);
     await setDoc(doc(db, "rooms", roomId), {});
-  };
+  }; //firebase
 
   // DO NOT TOUCH ANYTHING ABOVE 
   return (
@@ -243,8 +230,8 @@ export default function list() {
           <View className='flex-1'>
 
             {/* The To-Do-List header on top*/}
-            <View className='bg-[#fe9438] pb-7 rounded-[30]' style={{ paddingTop: Platform.OS === 'android' ? 60 : 70 }}>
-              <Text className='text-6xl text-center' style={[styles.shadow, { fontSize: hp(5.5) }]}>To-Do-List</Text>
+            <View className='bg-[#fe9438] pb-7 rounded-[30]' style={{ paddingTop: Platform.OS === 'android' ? 60 : 70, marginBottom: 20}}>
+              <Text className='text-6xl text-center' style={[styles.shadow, {fontSize: hp(5.5)}]}>To-Do-List</Text>
             </View>
 
             {/* The reminder component when you create the reminder*/}

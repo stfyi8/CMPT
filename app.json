@@ -2,6 +2,7 @@
   "expo": {
     "name": "Streamliner",
     "slug": "Streamliner",
+    "scheme": "com-stfyi-CMPT",
     "version": "1.0.0",
     "web": {
       "favicon": "./assets/myAssets/logo.png"
@@ -24,8 +25,8 @@
         "expo-app-blocker",
         {
           "ios": {
-            // "appGroup": "group.com.yourapp.blocker",
-              "shield": {
+            "appGroup": "group.com.stfyi.CMPT",
+            "shield": {
               "title": "Hold on!",
               "subtitle": "{appName} is blocked.",
               "primaryButtonLabel": "Earn Free Time",
@@ -73,7 +74,7 @@
                   "entitlements": {
                     "com.apple.developer.family-controls": true,
                     "com.apple.security.application-groups": [
-                      "group.expo.app-blocker"
+                      "group.com.stfyi.CMPT"
                     ]
                   }
                 },
@@ -83,7 +84,7 @@
                   "entitlements": {
                     "com.apple.developer.family-controls": true,
                     "com.apple.security.application-groups": [
-                      "group.expo.app-blocker"
+                      "group.com.stfyi.CMPT"
                     ]
                   }
                 },
@@ -93,7 +94,7 @@
                   "entitlements": {
                     "com.apple.developer.family-controls": true,
                     "com.apple.security.application-groups": [
-                      "group.expo.app-blocker"
+                      "group.com.stfyi.CMPT"
                     ]
                   }
                 }

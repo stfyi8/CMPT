@@ -6,7 +6,7 @@ import { Octicons } from '@react-native-vector-icons/octicons';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useReminder } from '../../components/Reminder';
 import "global.css"
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 
 // you can edit all components with className="" e.g. View, Text, pressable...
@@ -24,7 +24,15 @@ export default function ToDo() {
     setShowPicker(true)
     setMode(currentMode)
   }
+
   
+  const onChangeTime = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowPicker(Platform.OS === 'ios');
+
+    if (event.type === 'set' && selectedDate) {
+      setTime(selectedDate);
+    }
+  };
 
   const updateTask = (index: number, value: string) => {
     setTasks(prev => prev.map((t, i) => (i === index ? value : t)));
@@ -87,8 +95,7 @@ export default function ToDo() {
               value={time}
               mode={mode}
               display="default"
-              onValueChange={(event, date) => setTime(date)}
-              onDismiss={() => setShowPicker(false)}
+              onChange={onChangeTime}
             />
         </View>
           )}
@@ -158,4 +165,3 @@ const styles = StyleSheet.create({
     gap: 15 // Spacing between scrolling boxes
   },
 })
-

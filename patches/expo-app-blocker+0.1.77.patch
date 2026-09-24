@@ -1,0 +1,44 @@
+diff --git a/node_modules/expo-app-blocker/android/src/main/java/expo/modules/appblocker/AppBlockerService.kt b/node_modules/expo-app-blocker/android/src/main/java/expo/modules/appblocker/AppBlockerService.kt
+index df6f439..72051fb 100644
+--- a/node_modules/expo-app-blocker/android/src/main/java/expo/modules/appblocker/AppBlockerService.kt
++++ b/node_modules/expo-app-blocker/android/src/main/java/expo/modules/appblocker/AppBlockerService.kt
+@@ -198,6 +198,31 @@ class AppBlockerService : Service() {
+     return START_STICKY
+   }
+ 
++  override fun onTaskRemoved(rootIntent: Intent?) {
++    Log.d(TAG, "AppBlockerService onTaskRemoved: restarting so blocking keeps running")
++    super.onTaskRemoved(rootIntent)
++
++    // Swiping the app away from recents tears down the task, which stops a
++    // foreground service along with the process. Restart the service so the
++    // blocker keeps intercepting blocked apps and still posts its notifications
++    // while the app is "closed". (Force-stop from Settings cannot be survived —
++    // Android intentionally forbids any app from doing so.)
++    val restartIntent = Intent(this, AppBlockerService::class.java)
++    restartIntent.action = ACTION_RESTART
++    try {
++      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
++        startForegroundService(restartIntent)
++      } else {
++        startService(restartIntent)
++      }
++      // Give the fresh instance a chance to startForeground before the task
++      // removal fully kills this process.
++      Thread.sleep(250)
++    } catch (e: Exception) {
++      Log.e(TAG, "AppBlockerService onTaskRemoved: restart failed", e)
++    }
++  }
++
+   override fun onDestroy() {
+     Log.d(TAG, "AppBlockerService onDestroy")
+     handler.removeCallbacks(pollRunnable)
+@@ -262,6 +287,7 @@ class AppBlockerService : Service() {
+     private const val LOOKBACK_WINDOW_MS = 10_000L
+     private const val ACTION_TEMPORARY_UNLOCK = "expo.modules.appblocker.TEMPORARY_UNLOCK"
+     private const val ACTION_RELOCK = "expo.modules.appblocker.RELOCK"
++    private const val ACTION_RESTART = "expo.modules.appblocker.RESTART"
+     private const val EXTRA_DURATION_MINUTES = "duration_minutes"
+ 
+     fun start(context: Context) {

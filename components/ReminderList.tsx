@@ -68,9 +68,9 @@ export default function ReminderList({ reminders, onCheckerChange }: ReminderLis
 
                   <View className="flex-row items-center gap-2">
                     {/*edit button*/}
-                    <TouchableOpacity onPress={() => { alert("Reminder edited" + index) }} style={{ padding: 5 }}>
+                    {/* <TouchableOpacity onPress={() => { alert("Reminder edited" + index) }} style={{ padding: 5 }}>
                       <Ionicons name="pencil" size={24} color="grey" />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                     {/*delete button, color="#ef5151" */}
                     <TouchableOpacity onPress={() => { deleteData(reminder.id) }} style={{ padding: 5 }}>
@@ -108,9 +108,9 @@ export default function ReminderList({ reminders, onCheckerChange }: ReminderLis
                   </View>
                 </View>
                 {/*edit button*/}
-                <TouchableOpacity onPress={() => { alert("Reminder edited" + index) }} style={{ padding: 5 }}>
+                {/* <TouchableOpacity onPress={() => { alert("Reminder edited" + index) }} style={{ padding: 5 }}>
                   <Ionicons name="pencil" size={24} color="grey" />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </TouchableOpacity>
             // if statement? if(isEnabled && selectedReminder.checker){return () => deleteData(reminder.id)}
